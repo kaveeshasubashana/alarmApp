@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alarm, Stopwatch & Reminders</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: #555;
+            margin-top: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-group label {
+            width: 80px;
+            margin-right: 10px;
+            text-align: right;
+            color: #777;
+        }
+
+        .input-group input[type="number"],
+        .input-group input[type="text"],
+        .input-group input[type="date"],
+        .input-group input[type="time"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            flex-grow: 1;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+            margin-right: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .stopwatch-display {
+            font-size: 2rem;
+            margin: 15px 0;
+            text-align: center;
+            color: #333;
+        }
+
+        .stopwatch-controls {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .actions button {
+            padding: 5px 10px;
+            font-size: 0.9rem;
+            margin-right: 3px;
+        }
+
+        .message {
+            margin-top: 10px;
+            font-style: italic;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Time Management Hub</h1>
+        </header>
+
+        <section id="alarm-section">
+            <h2>Set Alarm</h2>
+            <div class="input-group">
+                <label for="alarm-hour">Hour:</label>
+                <input type="number" id="alarm-hour" min="0" max="23" value="00">
+            </div>
+            <div class="input-group">
+                <label for="alarm-minute">Minute:</label>
+                <input type="number" id="alarm-minute" min="0" max="59" value="00">
+            </div>
+            <div class="input-group">
+                <label for="alarm-second">Second:</label>
+                <input type="number" id="alarm-second" min="0" max="59" value="00">
+            </div>
+            <button id="set-alarm-btn">Set Alarm</button>
+            <div id="alarm-message" class="message"></div>
+        </section>
+
+        <section id="stopwatch-section">
+            <h2>Stopwatch (Countdown)</h2>
+            <div class="input-group">
+                <label for="stopwatch-hour">Hour:</label>
+                <input type="number" id="stopwatch-hour" min="0" value="00">
+            </div>
+            <div class="input-group">
+                <label for="stopwatch-minute">Minute:</label>
+                <input type="number" id="stopwatch-minute" min="0" max="59" value="00">
+            </div>
+            <div class="input-group">
+                <label for="stopwatch-second">Second:</label>
+                <input type="number" id="stopwatch-second" min="0" max="59" value="00">
+            </div>
+            <div class="stopwatch-display">00:00:00</div>
+            <div class="stopwatch-controls">
+                <button id="start-stopwatch-btn">Start</button>
+                <button id="pause-stopwatch-btn" disabled>Pause</button>
+                <button id="reset-stopwatch-btn">Reset</button>
+            </div>
+            <div id="stopwatch-message" class="message"></div>
+        </section>
+
+        <section id="reminder-section">
+            <h2>Set Reminder</h2>
+            <div class="input-group">
+                <label for="reminder-message">Message:</label>
+                <input type="text" id="reminder-message">
+            </div>
+            <div class="input-group">
+                <label for="reminder-date">Date:</label>
+                <input type="date" id="reminder-date">
+            </div>
+            <div class="input-group">
+                <label for="reminder-time">Time:</label>
+                <input type="time" id="reminder-time">
+            </div>
+            <button id="set-reminder-btn">Set Reminder</button>
+            <div id="reminder-message-display" class="message"></div>
+        </section>
+
+        <section id="list-section">
+            <h2>Alarms & Reminders</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Details</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="items-list">
+                    </tbody>
+            </table>
+        </section>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Alarm functionality
+            const alarmHourInput = document.getElementById('alarm-hour');
+            const alarmMinuteInput = document.getElementById('alarm-minute');
+            const alarmSecondInput = document.getElementById('alarm-second');
+            const setAlarmBtn = document.getElementById('set-alarm-btn');
+            const alarmMessageDiv = document.getElementById('alarm-message');
+            let activeAlarm = null;
+
+            setAlarmBtn.addEventListener('click', setAlarm);
+
+            function setAlarm() {
+                const hour = parseInt(alarmHourInput.value);
+                const minute = parseInt(alarmMinuteInput.value);
+                const second = parseInt(alarmSecondInput.value);
+
+                if (isNaN(hour) || isNaN(minute) || isNaN(second) || hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59) {
+                    alarmMessageDiv.textContent = 'Please enter a valid time.';
+                    return;
+                }
+
+                const alarmTime = new Date();
+                alarmTime.setHours(hour);
+                alarmTime.setMinutes(minute);
+                alarmTime.setSeconds(second);
+                alarmTime.setMilliseconds(0);
+
+                const now = new Date();
+                if (alarmTime <= now) {
+                    alarmTime.setDate(alarmTime.getDate() + 1); // Set for the next day if in the past
+                }
+
+                const alarmDetails = {
+                    type: 'alarm',
+                    time: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`,
+                    triggerTime: alarmTime.getTime(),
+                    triggered: false // Add a triggered flag
+                };
+
+                saveItem(alarmDetails);
+                loadItems();
+                alarmMessageDiv.textContent = `Alarm set for ${alarmDetails.time}`;
+            }
+
+            function checkAlarms() {
+                const now = new Date().getTime();
+                getItems('alarm').forEach(item => {
+                    if (now >= item.triggerTime && !item.triggered) {
+                        alert(`Alarm triggered for ${item.time}`);
+                        item.triggered = true;
+                        updateItem(item); // Mark as triggered to avoid repeated alerts
+                    }
+                });
+            }
+            setInterval(checkAlarms, 1000);
+
+            // Stopwatch functionality
+            const stopwatchHourInput = document.getElementById('stopwatch-hour');
+            const stopwatchMinuteInput = document.getElementById('stopwatch-minute');
+            const stopwatchSecondInput = document.getElementById('stopwatch-second');
+            const stopwatchDisplay = document.querySelector('.stopwatch-display');
+            const startStopwatchBtn = document.getElementById('start-stopwatch-btn');
+            const pauseStopwatchBtn = document.getElementById('pause-stopwatch-btn');
+            const resetStopwatchBtn = document.getElementById('reset-stopwatch-btn');
+            const stopwatchMessageDiv = document.getElementById('stopwatch-message');
+            let stopwatchInterval;
+            let totalSeconds = 0;
+            let isRunning = false;
+
+            startStopwatchBtn.addEventListener('click', startStopwatch);
+            pauseStopwatchBtn.addEventListener('click', pauseStopwatch);
+            resetStopwatchBtn.addEventListener('click', resetStopwatch);
+
+            function updateStopwatchDisplay() {
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                stopwatchDisplay.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+
+            function startStopwatch() {
+                if (isRunning) return;
+                const hours = parseInt(stopwatchHourInput.value) || 0;
+                const minutes = parseInt(stopwatchMinuteInput.value) || 0;
+                const seconds = parseInt(stopwatchSecondInput.value) || 0;
+                totalSeconds = hours * 3600 + minutes * 60 + seconds;
+                updateStopwatchDisplay();
+                if (totalSeconds <= 0) {
+                    stopwatchMessageDiv.textContent = 'Please set a valid countdown time.';
+                    return;
+                }
+                isRunning = true;
+                startStopwatchBtn.disabled = true;
+                pauseStopwatchBtn.disabled = false;
+                stopwatchInterval = setInterval(() => {
+                    totalSeconds--;
+                    updateStopwatchDisplay();
+                    if (totalSeconds <= 0) {
+                        clearInterval(stopwatchInterval);
+                        isRunning = false;
+                        startStopwatchBtn.disabled = false;
+                        pauseStopwatchBtn.disabled = true;
+                        stopwatchMessageDiv.textContent = 'Countdown finished!';
+                        // Optionally trigger a sound or alert
+                    }
+                }, 1000);
+            }
+
+            function pauseStopwatch() {
+                clearInterval(stopwatchInterval);
+                isRunning = false;
+                startStopwatchBtn.disabled = false;
+                pauseStopwatchBtn.disabled = true;
+            }
+
+            function resetStopwatch() {
+                clearInterval(stopwatchInterval);
+                isRunning = false;
+                totalSeconds = 0;
+                updateStopwatchDisplay();
+                startStopwatchBtn.disabled = false;
+                pauseStopwatchBtn.disabled = true;
+                stopwatchMessageDiv.textContent = '';
+            }
+
+            // Reminder functionality
+            const reminderMessageInput = document.getElementById('reminder-message');
+            const reminderDateInput = document.getElementById('reminder-date');
+            const reminderTimeInput = document.getElementById('reminder-time');
+            const setReminderBtn = document.getElementById('set-reminder-btn');
+            const reminderMessageDisplayDiv = document.getElementById('reminder-message-display');
+
+            setReminderBtn.addEventListener('click', setReminder);
+
+            function setReminder() {
+                const message = reminderMessageInput.value.trim();
+                const date = reminderDateInput.value;
+                const time = reminderTimeInput.value;
+
+                if (!message || !date || !time) {
+                    reminderMessageDisplayDiv.textContent = 'Please enter a message, date, and time for the reminder.';
+                    return;
+                }
+
+                const reminderDateTime = new Date(`${date}T${time}`);
+
+                if (isNaN(reminderDateTime.getTime())) {
+                    reminderMessageDisplayDiv.textContent = 'Please enter a valid date and time.';
+                    return;
+                }
+
+                const reminderDetails = {
+                    type: 'reminder',
+                    message: message,
+                    dateTime: reminderDateTime.getTime(),
+                    formattedDateTime: `${date} ${time}`,
+                    triggered: false // Add a triggered flag
+                };
+
+                saveItem(reminderDetails);
+                loadItems();
+                reminderMessageDisplayDiv.textContent = `Reminder set for ${reminderDetails.formattedDateTime}`;
+                reminderMessageInput.value = '';
+                reminderDateInput.value = '';
+                reminderTimeInput.value = '';
+            }
+
+            function checkReminders() {
+                const now = new Date().getTime();
+                getItems('reminder').forEach(item => {
+                    if (now >= item.dateTime && !item.triggered) {
+                        alert(`Reminder: ${item.message} at ${item.formattedDateTime}`);
+                        item.triggered = true;
+                        updateItem(item); // Mark as triggered
+                    }
+                });
+            }
+            setInterval(checkReminders, 60000); // Check every minute
+
+            // IndexedDB functionality
+            let db;
+            const dbName = 'timeManagementDB';
+            const storeName = 'timeItems';
+            const itemsListTbody = document.getElementById('items-list');
+
+            const request = indexedDB.open(dbName, 1);
+
+            request.onerror = function(event) {
+                console.error("Database error: " + event.target.errorCode);
+            };
+
+            request.onsuccess = function(event) {
+                db = event.target.result;
+                console.log("Database opened successfully");
+                loadItems();
+            };
+
+            request.onupgradeneeded = function(event) {
+                const db = event.target.result;
+                const objectStore = db.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true });
+                objectStore.createIndex('type', 'type', false); // Index by type (alarm/reminder)
+                console.log("Object store created");
+            };
+
+            function saveItem(item) {
+                const transaction = db.transaction([storeName], 'readwrite');
+                const objectStore = transaction.objectStore(storeName);
+                objectStore.add(item);
+                transaction.onsuccess = function() {
+                    console.log('Item saved to DB');
+                };
+                transaction.onerror = function(event) {
+                    console.error('Error saving item:', event.target.errorCode);
+                };
+            }
+
+            function getItems(type = null) {
+                const transaction = db.transaction([storeName], 'readonly');
+                const objectStore = transaction.objectStore(storeName);
+                const items = [];
+                return new Promise((resolve, reject) => {
+                    const cursorRequest = objectStore.openCursor();
+                    cursorRequest.onsuccess = function(event) {
+                        const cursor = event.target.result;
+                        if (cursor) {
+                            if (!type || cursor.value.type === type) {
+                                items.push({...cursor.value, id: cursor.key}); // Include the ID
+                            }
+                            cursor.continue();
+                        } else {
+                            resolve(items);
+                        }
+                    };
+                    cursorRequest.onerror = function(event) {
+                        reject('Error fetching items:', event.target.errorCode);
+                    };
+                });
+            }
+
+            function updateItem(itemToUpdate) {
+                const transaction = db.transaction([storeName], 'readwrite');
+                const objectStore = transaction.objectStore(storeName);
+                const getRequest = objectStore.get(itemToUpdate.id);
+                getRequest.onsuccess = function() {
+                    if (getRequest.result) {
+                        const updatedItem = {...getRequest.result, ...itemToUpdate};
+                        const updateRequest = objectStore.put(updatedItem);
+                        updateRequest.onsuccess = function() {
+                            console.log(`Item with ID ${itemToUpdate.id} updated.`);
+                            loadItems();
+                        };
+                        updateRequest.onerror = function(event) {
+                            console.error('Error updating item:', event.target.errorCode);
+                        };
+                    } else {
+                        console.error(`Item with ID ${itemToUpdate.id} not found.`);
+                    }
+                };
+                getRequest.onerror = function(event){
+                    console.error("Error getting item for update:", event.target.error);
+                }
+            }
+
+            function deleteItem(id) {
+                const transaction = db.transaction([storeName], 'readwrite');
+                const objectStore = transaction.objectStore(storeName);
+                const deleteRequest = objectStore.delete(id);
+                deleteRequest.onsuccess = function() {
+                    console.log(`Item with ID ${id} deleted.`);
+                    loadItems();
+                };
+                deleteRequest.onerror = function(event) {
+                    console.error('Error deleting item:', event.target.errorCode);
+                };
+            }
+
+            function loadItems() {
+                itemsListTbody.innerHTML = ''; // Clear the table
+                getItems().then(items => {
+                    items.forEach(item => {
+                        const row = document.createElement('tr');
+                        const typeCell = document.createElement('td');
+                        const detailsCell = document.createElement('td');
+                        const actionsCell = document.createElement('td');
+                        typeCell.textContent = item.type;
+
+                        if (item.type === 'alarm') {
+                            detailsCell.textContent = `Time: ${item.time}`;
+                        } else if (item.type === 'reminder') {
+                            detailsCell.textContent = `Message: ${item.message}, Date/Time: ${item.formattedDateTime}`;
+                        }
+
+                        const editButton = document.createElement('button');
+                        editButton.textContent = 'Edit';
+                        editButton.classList.add('edit-btn');
+                        editButton.dataset.id = item.id;
+                        editButton.addEventListener('click', () => editItem(item));
+
+                        const deleteButton = document.createElement('button');
+                        deleteButton.textContent = 'Delete';
+                        deleteButton.classList.add('delete-btn');
+                        deleteButton.dataset.id = item.id;
+                        deleteButton.addEventListener('click', () => deleteItem(item.id));
+
+                        actionsCell.appendChild(editButton);
+                        actionsCell.appendChild(deleteButton);
+                        row.appendChild(typeCell);
+                        row.appendChild(detailsCell);
+                        row.appendChild(actionsCell);
+                        itemsListTbody.appendChild(row);
+                    });
+                }).catch(error => {
+                    console.error("Error loading items: ", error);
+                    itemsListTbody.innerHTML = `<tr><td colspan="3">Error loading items.</td></tr>`;
+                });
+            }
+
+            function editItem(item) {
+                if (item.type === 'alarm') {
+                    alarmHourInput.value = item.time.split(':')[0];
+                    alarmMinuteInput.value = item.time.split(':')[1];
+                    alarmSecondInput.value = item.time.split(':')[2];
+                    setAlarmBtn.textContent = 'Update Alarm';
+                    setAlarmBtn.onclick = () => {
+                        const hour = parseInt(alarmHourInput.value);
+                        const minute = parseInt(alarmMinuteInput.value);
+                        const second = parseInt(alarmSecondInput.value);
+                         if (isNaN(hour) || isNaN(minute) || isNaN(second) || hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59) {
+                            alarmMessageDiv.textContent = 'Please enter a valid time.';
+                            return;
+                        }
+                        const updatedAlarmDetails = {
+                            id: item.id,
+                            type: 'alarm',
+                            time: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`,
+                            triggerTime: item.triggerTime, // Keep original trigger time
+                            triggered: false
+                        };
+                        updateItem(updatedAlarmDetails);
+                        setAlarmBtn.textContent = 'Set Alarm';
+                        setAlarmBtn.onclick = setAlarm;
+                        alarmHourInput.value = '00';
+                        alarmMinuteInput.value = '00';
+                        alarmSecondInput.value = '00';
+                        alarmMessageDiv.textContent = 'Alarm updated';
+                    };
+                } else if (item.type === 'reminder') {
+                    reminderMessageInput.value = item.message;
+                    reminderDateInput.value = item.formattedDateTime.split(' ')[0];
+                    reminderTimeInput.value = item.formattedDateTime.split(' ')[1];
+                    setReminderBtn.textContent = 'Update Reminder';
+                    setReminderBtn.onclick = () => {
+                        const message = reminderMessageInput.value.trim();
+                        const date = reminderDateInput.value;
+                        const time = reminderTimeInput.value;
+                        if (!message || !date || !time) {
+                            reminderMessageDisplayDiv.textContent = 'Please enter a message, date, and time for the reminder.';
+                            return;
+                        }
+                        const updatedReminderDateTime = new Date(`${date}T${time}`).getTime();
+                         if (isNaN(updatedReminderDateTime)) {
+                            reminderMessageDisplayDiv.textContent = 'Please enter a valid date and time.';
+                            return;
+                        }
+                        const updatedReminderDetails = {
+                            id: item.id,
+                            type: 'reminder',
+                            message: message,
+                            dateTime: updatedReminderDateTime,
+                            formattedDateTime: `${date} ${time}`,
+                            triggered: false
+                        };
+                        updateItem(updatedReminderDetails);
+                        setReminderBtn.textContent = 'Set Reminder';
+                        setReminderBtn.onclick = setReminder;
+                        reminderMessageInput.value = '';
+                        reminderDateInput.value = '';
+                        reminderTimeInput.value = '';
+                        reminderMessageDisplayDiv.textContent = 'Reminder updated!';
+                    };
+                }
+            }
+        });
+    </script>
+</body>
+</html>
